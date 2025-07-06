@@ -51,21 +51,6 @@ jobs:
         ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
         ARM_ACCESS_KEY: ${{ secrets.ARM_ACCESS_KEY }}
 
-    - name: Terraform Plan (Infrastructure)
-      working-directory: ./terraform/01-infrastructure
-      run: |
-        terraform plan \
-          -var="environment=prod" \
-          -var="location=Brazil South" \
-          -var="container_image_tag=${{ github.sha }}" \
-          -out=tfplan-infra
-      env:
-        ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-        ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-        ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-        ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-        ARM_ACCESS_KEY: ${{ secrets.ARM_ACCESS_KEY }}
-
     - name: Import existing resources if needed
       working-directory: ./terraform/01-infrastructure
       run: |
