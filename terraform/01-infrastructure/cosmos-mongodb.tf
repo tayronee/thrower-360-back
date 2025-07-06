@@ -10,7 +10,7 @@ resource "azurerm_cosmosdb_account" "mongodb" {
   kind                = "MongoDB"
 
   # Free Tier - 400 RUs/s e 25GB grátis
-  enable_free_tier = true
+  free_tier_enabled = true
 
   consistency_policy {
     consistency_level = "Session"
@@ -20,16 +20,12 @@ resource "azurerm_cosmosdb_account" "mongodb" {
     name = "EnableMongo"
   }
 
-  capabilities {
-    name = "EnableServerless"
-  }
-
   geo_location {
     location          = azurerm_resource_group.main.location
     failover_priority = 0
   }
 
-  tags = var.tags
+  tags = local.tags
 }
 
 # MongoDB Database
@@ -66,6 +62,6 @@ resource "azurerm_cosmosdb_mongo_collection" "pregao_detalhes" {
 
 # Output da connection string
 output "cosmos_mongodb_connection_string" {
-  value     = azurerm_cosmosdb_account.mongodb.connection_strings[0]
+  value     = azurerm_cosmosdb_account.mongodb.primary_mongodb_connection_string
   sensitive = true
 }
