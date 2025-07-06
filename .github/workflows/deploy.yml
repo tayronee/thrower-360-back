@@ -171,6 +171,14 @@ jobs:
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+    - name: Register Azure Providers
+      run: |
+        az provider register --namespace Microsoft.App
+        az provider register --namespace Microsoft.ContainerRegistry
+        az provider register --namespace Microsoft.OperationalInsights
+        echo "Providers registered, waiting for propagation..."
+        sleep 30
+
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
       with:
