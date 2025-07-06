@@ -108,7 +108,7 @@ resource "azurerm_container_app" "main" {
   # Secrets
   secret {
     name  = "mongodb-uri"
-    value = data.azurerm_cosmosdb_account.mongodb.connection_strings[0]
+    value = data.azurerm_cosmosdb_account.mongodb.primary_mongodb_connection_string
   }
 
   # Registro do container registry
