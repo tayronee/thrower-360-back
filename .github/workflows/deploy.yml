@@ -1,19 +1,16 @@
-name: Deploy to Azure
+name: Deploy to Azure Production
 
 on:
   push:
-    branches: [main]
-  pull_request:
     branches: [main]
 
 env:
   IMAGE_NAME: thrower360
 
 jobs:
-  deploy-dev:
-    if: github.ref == 'refs/heads/main'
+  deploy-prod:
     runs-on: ubuntu-latest
-    environment: dev
+    environment: production
     
     steps:
     - name: Checkout code
@@ -54,9 +51,9 @@ jobs:
       working-directory: ./terraform/01-infrastructure
       run: |
         terraform plan \
-          -var="environment=dev" \
+          -var="environment=prod" \
           -var="container_image_tag=${{ github.sha }}" \
-          -var="mongodb_uri=${{ secrets.MONGODB_URI }}" \
+          -var="mongodb_uri=${{ secrets.MONGODB_URI_PROD }}" \
           -out=tfplan-infra
       env:
         ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
@@ -125,156 +122,8 @@ jobs:
       working-directory: ./terraform/02-container-app
       run: |
         terraform plan \
-          -var="environment=dev" \
+          -var="environment=prod" \
           -var="container_image_tag=${{ github.sha }}" \
-          -var="mongodb_uri=${{ secrets.MONGODB_URI }}" \
-          -out=tfplan-app
-      env:
-        ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-        ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-        ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-        ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-        ARM_ACCESS_KEY: ${{ secrets.ARM_ACCESS_KEY }}
-
-    - name: Terraform Apply (Container App)
-      working-directory: ./terraform/02-container-app
-      run: terraform apply -auto-approve tfplan-app
-      env:
-        ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-        ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-        ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-        ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-        ARM_ACCESS_KEY: ${{ secrets.ARM_ACCESS_KEY }}
-
-    - name: Get Container App URL
-      working-directory: ./terraform/02-container-app
-      run: |
-        APP_URL=$(terraform output -raw container_app_url)
-        echo "Container App deployed at: $APP_URL"
-      env:
-        ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-        ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-        ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-        ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-        ARM_ACCESS_KEY: ${{ secrets.ARM_ACCESS_KEY }}
-
-  deploy-prod:
-    if: github.event_name == 'release' && github.event.action == 'published'
-    runs-on: ubuntu-latest
-    environment: prod
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Login to Azure
-      uses: azure/login@v1
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-    - name: Register Azure providers
-      run: |
-        echo "Registering Azure providers..."
-        az provider register --namespace Microsoft.App --wait
-        az provider register --namespace Microsoft.ContainerRegistry --wait
-        az provider register --namespace Microsoft.OperationalInsights --wait
-        echo "Waiting for provider registration to propagate..."
-        sleep 30
-
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
-      with:
-        terraform_version: 1.5.0
-        terraform_wrapper: false
-
-    # STEP 1: Create base infrastructure (ACR, etc.)
-    - name: Terraform Init (Infrastructure)
-      working-directory: ./terraform/01-infrastructure
-      run: terraform init
-      env:
-        ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-        ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-        ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-        ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-        ARM_ACCESS_KEY: ${{ secrets.ARM_ACCESS_KEY }}
-
-    - name: Terraform Plan (Infrastructure)
-      working-directory: ./terraform/01-infrastructure
-      run: |
-        terraform plan \
-          -var="environment=prod" \
-          -var="container_image_tag=${{ github.event.release.tag_name }}" \
-          -var="mongodb_uri=${{ secrets.MONGODB_URI_PROD }}" \
-          -out=tfplan-infra
-      env:
-        ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-        ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-        ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-        ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-        ARM_ACCESS_KEY: ${{ secrets.ARM_ACCESS_KEY }}
-
-    - name: Terraform Apply (Infrastructure)
-      working-directory: ./terraform/01-infrastructure
-      run: terraform apply -auto-approve tfplan-infra
-      env:
-        ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-        ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-        ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-        ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-        ARM_ACCESS_KEY: ${{ secrets.ARM_ACCESS_KEY }}
-
-    - name: Get ACR details
-      id: acr-details
-      working-directory: ./terraform/01-infrastructure
-      run: |
-        ACR_LOGIN_SERVER=$(terraform output -raw container_registry_login_server)
-        ACR_USERNAME=$(terraform output -raw container_registry_admin_username)
-        ACR_PASSWORD=$(terraform output -raw container_registry_admin_password)
-        
-        echo "acr_login_server=$ACR_LOGIN_SERVER" >> $GITHUB_OUTPUT
-        echo "acr_username=$ACR_USERNAME" >> $GITHUB_OUTPUT
-        echo "acr_password=$ACR_PASSWORD" >> $GITHUB_OUTPUT
-      env:
-        ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-        ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-        ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-        ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-        ARM_ACCESS_KEY: ${{ secrets.ARM_ACCESS_KEY }}
-
-    # STEP 2: Build and push Docker image
-    - name: Login to Azure Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ steps.acr-details.outputs.acr_login_server }}
-        username: ${{ steps.acr-details.outputs.acr_username }}
-        password: ${{ steps.acr-details.outputs.acr_password }}
-
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        push: true
-        tags: |
-          ${{ steps.acr-details.outputs.acr_login_server }}/${{ env.IMAGE_NAME }}:${{ github.event.release.tag_name }}
-          ${{ steps.acr-details.outputs.acr_login_server }}/${{ env.IMAGE_NAME }}:latest
-
-    # STEP 3: Create Container App now that image exists
-    - name: Terraform Init (Container App)
-      working-directory: ./terraform/02-container-app
-      run: terraform init
-      env:
-        ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-        ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-        ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-        ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-        ARM_ACCESS_KEY: ${{ secrets.ARM_ACCESS_KEY }}
-
-    - name: Terraform Plan (Container App)
-      working-directory: ./terraform/02-container-app
-      run: |
-        terraform plan \
-          -var="environment=prod" \
-          -var="container_image_tag=${{ github.event.release.tag_name }}" \
           -var="mongodb_uri=${{ secrets.MONGODB_URI_PROD }}" \
           -out=tfplan-app
       env:
@@ -298,7 +147,8 @@ jobs:
       working-directory: ./terraform/02-container-app
       run: |
         APP_URL=$(terraform output -raw container_app_url)
-        echo "Container App deployed at: $APP_URL"
+        echo "🚀 Container App deployed at: $APP_URL"
+        echo "::notice title=Deployment Success::Container App deployed at $APP_URL"
       env:
         ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
         ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
