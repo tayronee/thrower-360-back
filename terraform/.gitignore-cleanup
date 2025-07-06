@@ -1,0 +1,17 @@
+# Terraform files to ignore in root directory
+main.tf
+outputs.tf
+infrastructure.tf
+container-app.tf
+backend-*.tf
+
+# Keep only organized directories and common files
+!01-infrastructure/
+!02-container-app/
+!backend.tf
+!variables.tf
+!prod.tfvars
+!terraform.tfvars.example
+!setup-azure*.sh
+!*.md
+!.gitignore

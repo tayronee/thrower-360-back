@@ -40,9 +40,14 @@ jobs:
         terraform_wrapper: false
 
     # STEP 1: Create base infrastructure (ACR, etc.)
+    - name: Create infrastructure backend config
+      working-directory: ./terraform
+      run: |
+        cp backend-infrastructure.tf backend.tf
+
     - name: Terraform Init (Infrastructure)
-      working-directory: ./terraform/01-infrastructure
-      run: terraform init
+      working-directory: ./terraform
+      run: terraform init -reconfigure
       env:
         ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
         ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
@@ -51,9 +56,13 @@ jobs:
         ARM_ACCESS_KEY: ${{ secrets.ARM_ACCESS_KEY }}
 
     - name: Terraform Plan (Infrastructure)
-      working-directory: ./terraform/01-infrastructure
+      working-directory: ./terraform
       run: |
         terraform plan \
+          -target=azurerm_resource_group.main \
+          -target=azurerm_container_registry.main \
+          -target=azurerm_log_analytics_workspace.main \
+          -target=azurerm_container_app_environment.main \
           -var="environment=dev" \
           -var="container_image_tag=${{ github.sha }}" \
           -var="mongodb_uri=${{ secrets.MONGODB_URI }}" \
@@ -66,7 +75,7 @@ jobs:
         ARM_ACCESS_KEY: ${{ secrets.ARM_ACCESS_KEY }}
 
     - name: Terraform Apply (Infrastructure)
-      working-directory: ./terraform/01-infrastructure
+      working-directory: ./terraform
       run: terraform apply -auto-approve tfplan-infra
       env:
         ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
@@ -77,7 +86,7 @@ jobs:
 
     - name: Get ACR details
       id: acr-details
-      working-directory: ./terraform/01-infrastructure
+      working-directory: ./terraform
       run: |
         ACR_LOGIN_SERVER=$(terraform output -raw container_registry_login_server)
         ACR_USERNAME=$(terraform output -raw container_registry_admin_username)
@@ -111,9 +120,14 @@ jobs:
           ${{ steps.acr-details.outputs.acr_login_server }}/${{ env.IMAGE_NAME }}:latest
 
     # STEP 3: Create Container App now that image exists
+    - name: Create container app backend config
+      working-directory: ./terraform
+      run: |
+        cp backend-container-app.tf backend.tf
+
     - name: Terraform Init (Container App)
-      working-directory: ./terraform/02-container-app
-      run: terraform init
+      working-directory: ./terraform
+      run: terraform init -reconfigure
       env:
         ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
         ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
@@ -122,7 +136,7 @@ jobs:
         ARM_ACCESS_KEY: ${{ secrets.ARM_ACCESS_KEY }}
 
     - name: Terraform Plan (Container App)
-      working-directory: ./terraform/02-container-app
+      working-directory: ./terraform
       run: |
         terraform plan \
           -var="environment=dev" \
@@ -137,7 +151,7 @@ jobs:
         ARM_ACCESS_KEY: ${{ secrets.ARM_ACCESS_KEY }}
 
     - name: Terraform Apply (Container App)
-      working-directory: ./terraform/02-container-app
+      working-directory: ./terraform
       run: terraform apply -auto-approve tfplan-app
       env:
         ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
@@ -147,7 +161,7 @@ jobs:
         ARM_ACCESS_KEY: ${{ secrets.ARM_ACCESS_KEY }}
 
     - name: Get Container App URL
-      working-directory: ./terraform/02-container-app
+      working-directory: ./terraform
       run: |
         APP_URL=$(terraform output -raw container_app_url)
         echo "Container App deployed at: $APP_URL"
@@ -188,9 +202,14 @@ jobs:
         terraform_wrapper: false
 
     # STEP 1: Create base infrastructure (ACR, etc.)
+    - name: Create infrastructure backend config
+      working-directory: ./terraform
+      run: |
+        cp backend-infrastructure.tf backend.tf
+
     - name: Terraform Init (Infrastructure)
-      working-directory: ./terraform/01-infrastructure
-      run: terraform init
+      working-directory: ./terraform
+      run: terraform init -reconfigure
       env:
         ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
         ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
@@ -199,10 +218,14 @@ jobs:
         ARM_ACCESS_KEY: ${{ secrets.ARM_ACCESS_KEY }}
 
     - name: Terraform Plan (Infrastructure)
-      working-directory: ./terraform/01-infrastructure
+      working-directory: ./terraform
       run: |
         terraform plan \
-          -var="environment=prod" \
+          -target=azurerm_resource_group.main \
+          -target=azurerm_container_registry.main \
+          -target=azurerm_log_analytics_workspace.main \
+          -target=azurerm_container_app_environment.main \
+          -var-file="prod.tfvars" \
           -var="container_image_tag=${{ github.event.release.tag_name }}" \
           -var="mongodb_uri=${{ secrets.MONGODB_URI_PROD }}" \
           -out=tfplan-infra
@@ -214,7 +237,7 @@ jobs:
         ARM_ACCESS_KEY: ${{ secrets.ARM_ACCESS_KEY }}
 
     - name: Terraform Apply (Infrastructure)
-      working-directory: ./terraform/01-infrastructure
+      working-directory: ./terraform
       run: terraform apply -auto-approve tfplan-infra
       env:
         ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
@@ -225,7 +248,7 @@ jobs:
 
     - name: Get ACR details
       id: acr-details
-      working-directory: ./terraform/01-infrastructure
+      working-directory: ./terraform
       run: |
         ACR_LOGIN_SERVER=$(terraform output -raw container_registry_login_server)
         ACR_USERNAME=$(terraform output -raw container_registry_admin_username)
@@ -259,9 +282,14 @@ jobs:
           ${{ steps.acr-details.outputs.acr_login_server }}/${{ env.IMAGE_NAME }}:latest
 
     # STEP 3: Create Container App now that image exists
+    - name: Create container app backend config
+      working-directory: ./terraform
+      run: |
+        cp backend-container-app.tf backend.tf
+
     - name: Terraform Init (Container App)
-      working-directory: ./terraform/02-container-app
-      run: terraform init
+      working-directory: ./terraform
+      run: terraform init -reconfigure
       env:
         ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
         ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
@@ -270,10 +298,10 @@ jobs:
         ARM_ACCESS_KEY: ${{ secrets.ARM_ACCESS_KEY }}
 
     - name: Terraform Plan (Container App)
-      working-directory: ./terraform/02-container-app
+      working-directory: ./terraform
       run: |
         terraform plan \
-          -var="environment=prod" \
+          -var-file="prod.tfvars" \
           -var="container_image_tag=${{ github.event.release.tag_name }}" \
           -var="mongodb_uri=${{ secrets.MONGODB_URI_PROD }}" \
           -out=tfplan-app
@@ -285,7 +313,7 @@ jobs:
         ARM_ACCESS_KEY: ${{ secrets.ARM_ACCESS_KEY }}
 
     - name: Terraform Apply (Container App)
-      working-directory: ./terraform/02-container-app
+      working-directory: ./terraform
       run: terraform apply -auto-approve tfplan-app
       env:
         ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
@@ -295,7 +323,7 @@ jobs:
         ARM_ACCESS_KEY: ${{ secrets.ARM_ACCESS_KEY }}
 
     - name: Get Container App URL
-      working-directory: ./terraform/02-container-app
+      working-directory: ./terraform
       run: |
         APP_URL=$(terraform output -raw container_app_url)
         echo "Container App deployed at: $APP_URL"
