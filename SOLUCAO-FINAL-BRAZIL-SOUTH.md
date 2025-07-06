@@ -79,8 +79,17 @@ Após infraestrutura pronta, o workflow do GitHub Actions vai:
 
 ## ✅ **Status Atual:**
 - ✅ **Problemas resolvidos:** East US + IP dinâmico + state inconsistente  
-- 🔄 **Terraform Apply:** Executando em background (ID: 9345fac7-8cfe-4c77-aa77-62722b61c183)
-- ⏳ **ETA:** 3-5 minutos para conclusão
+- ✅ **Cosmos DB:** Criado com sucesso em Brazil South! 🎉
+- ✅ **Collections:** `pregoes` e `pregaodetalhes` criadas
+- 🔄 **GitHub Actions:** Executando pipeline completo
+- ⏳ **Container App:** Aguardando deploy via Actions
 - 🎯 **Resultado:** Deploy 100% Brazil South + MongoDB gratuito interno
 
-**A solução está sendo finalizada! 🚀**
+**✅ PRINCIPAIS RECURSOS CRIADOS:**
+- Cosmos DB: `cosmos-thrower360-prod` (FREE TIER)
+- Database: `thrower360db` 
+- Collections: `pregoes`, `pregaodetalhes`
+- Log Analytics: `law-thrower360-prod`
+- Container Registry: `acrthrower360prod`
+
+**🚀 GitHub Actions está finalizando o deploy! Aguarde mais alguns minutos.**
