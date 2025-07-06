@@ -4,11 +4,6 @@ on:
   push:
     branches: [main]
 
-# Cancel previous runs if a new one starts
-concurrency:
-  group: deploy-production
-  cancel-in-progress: true
-
 env:
   IMAGE_NAME: thrower360
 
