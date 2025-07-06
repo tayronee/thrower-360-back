@@ -16,13 +16,6 @@ variable "environment" {
   }
 }
 
-variable "mongodb_uri" {
-  description = "MongoDB connection string"
-  type        = string
-  sensitive   = true
-  default     = ""
-}
-
 variable "jwt_secret" {
   description = "JWT secret key"
   type        = string

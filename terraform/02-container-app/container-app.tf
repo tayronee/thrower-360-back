@@ -39,6 +39,11 @@ data "azurerm_container_app_environment" "main" {
   resource_group_name = data.azurerm_resource_group.main.name
 }
 
+data "azurerm_cosmosdb_account" "mongodb" {
+  name                = "cosmos-thrower360-${var.environment}"
+  resource_group_name = data.azurerm_resource_group.main.name
+}
+
 # Container App
 resource "azurerm_container_app" "main" {
   name                         = "ca-${local.app_name}-${var.environment}"
@@ -67,13 +72,16 @@ resource "azurerm_container_app" "main" {
         value = "3000"
       }
 
-      # MongoDB connection string
-      dynamic "env" {
-        for_each = var.mongodb_uri != "" ? [1] : []
-        content {
-          name        = "MONGODB_URI"
-          secret_name = "mongodb-uri"
-        }
+      # MongoDB connection string from Cosmos DB
+      env {
+        name        = "MONGODB_URI"
+        secret_name = "mongodb-uri"
+      }
+
+      # Fallback para MONGO_URI (compatibilidade)
+      env {
+        name        = "MONGO_URI"
+        secret_name = "mongodb-uri"
       }
     }
 
@@ -98,12 +106,9 @@ resource "azurerm_container_app" "main" {
   }
 
   # Secrets
-  dynamic "secret" {
-    for_each = var.mongodb_uri != "" ? [1] : []
-    content {
-      name  = "mongodb-uri"
-      value = var.mongodb_uri
-    }
+  secret {
+    name  = "mongodb-uri"
+    value = data.azurerm_cosmosdb_account.mongodb.connection_strings[0]
   }
 
   # Registro do container registry

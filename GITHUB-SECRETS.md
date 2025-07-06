@@ -25,8 +25,12 @@ Vá em **Settings** → **Secrets and variables** → **Actions** → **New repo
 }
 ```
 
-### 🗃️ **MongoDB:**
-- `MONGODB_URI_PROD`: `mongodb://your-prod-connection-string`
+## ✅ Atualização: MongoDB/Cosmos DB
+
+**⚠️ IMPORTANTE:** A partir da migração para Azure Cosmos DB, **NÃO é mais necessário** configurar:
+- ~~`MONGODB_URI_PROD`~~ ❌ (removido)
+
+O Cosmos DB é criado automaticamente pelo Terraform e a connection string é obtida automaticamente! 🎉
 
 ## ✅ **Verificação rápida:**
 

@@ -57,7 +57,6 @@ jobs:
         terraform plan \
           -var="environment=prod" \
           -var="container_image_tag=${{ github.sha }}" \
-          -var="mongodb_uri=${{ secrets.MONGODB_URI_PROD }}" \
           -out=tfplan-infra
       env:
         ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
@@ -128,7 +127,6 @@ jobs:
         terraform plan \
           -var="environment=prod" \
           -var="container_image_tag=${{ github.sha }}" \
-          -var="mongodb_uri=${{ secrets.MONGODB_URI_PROD }}" \
           -out=tfplan-app
       env:
         ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
