@@ -2,7 +2,7 @@
 # Este arquivo é usado pelo GitHub Actions
 
 environment = "prod"
-location    = "East US"
+location    = "Brazil South"
 
 # A tag da imagem será definida dinamicamente pelo GitHub Actions
 # container_image_tag será passado via -var no GitHub Actions
